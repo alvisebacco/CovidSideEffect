@@ -5,38 +5,88 @@
 # 19/04/22
 
 # Made with <3
-import sys
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton,
-                             QToolTip, QMessageBox, QLabel,
-                             QProgressBar, QCheckBox, QWidget)
-from QLed import QLed
+
+import tkinter as tk
+from tkinter import messagebox
 import requests
 
+from ApiOperations.ApiWhisper import ApiWhisper
 
-class DrawObj(QMainWindow, QWidget):
+
+class DrawObj:
     def __init__(self):
         super().__init__()
-        # Applicazione grafica
-        self.app = QApplication(sys.argv)
+        """Istanzio gli oggetti della UI"""
 
-        # Led circolare rosso
-        self.led_red = QLed(self, onColour=QLed.Red, shape=QLed.Circle)
-        self.led_green = QLed(self, onColour=QLed.Green, shape=QLed.Circle)
+        # Finestra
+        midnight_blue = '#151B54'
+        self.window = tk.Tk()
+        self.window.geometry('500x500')
+        self.window['background'] = midnight_blue
+        self.window.title('Covid Side Effect Tracker')
 
-    def __del__(self):
-        sys.exit(self.app.exec())
+        # Etichette
+        self.label_check_connection = tk.Label()
 
-    def get_connection_status(self, top: int, left: int, width: int, height: int, title: str) -> bool:
-        self.setWindowTitle(title)
-        self.setGeometry(top, left, width, height)
+        # Pulsanti
 
-        self.led_red.move(10, 50)
-        self.led_red.value = True
+        # Pulsante inizio
+        self.button_begin = tk.Button(self.window,
+                                      text='Sistema connesso! Iniziamo :)',
+                                      bg='orange',
+                                      font=('Courier', 16, 'bold'),
+                                      command=self.begin)
 
-        self.label = QLabel("<h5>Uploader utility<h5>", self)
-        self.show()
-        return True
+        self.button_begin.pack()
+        self.button_begin.place(x=50, y=200)
+
+        # Pulsante di login
+        self.button_login = tk.Button(self.window,
+                                      text='Login',
+                                      bg='orange',
+                                      font=('Courier', 16, 'bold'),
+                                      command=self.login)
+
+
+        # Pulsante registrati
+        self.button_new_user = tk.Button(self.window,
+                                         text='Registrati',
+                                         bg='orange',
+                                         font=('Courier', 16, 'bold'),
+                                         command=self.new_user)
+
+        # TextBox
+        self.fiscal_code = tk.Text
+
+        # MainLoop
+        self.window.mainloop()
+
+    def begin(self):
+        self.button_begin.place_forget()
+        self.button_begin.pack_forget()
+        self.button_login.pack()
+        self.button_login.place(x=50, y=250)
+        self.button_new_user.pack()
+        self.button_new_user.place(x=50, y=200)
+
+    def login(self):
+        self.label_check_connection.config(text='Operativo :)')
+
+    def new_user(self):
+        self.button_new_user.pack_forget()
+        self.button_new_user.place_forget()
+        self.button_login.pack_forget()
+        self.button_login.place_forget()
+
+
 
 
 if __name__ == '__main__':
-    DrawObj().get_connection_status(1000, 100, 330, 250, 'Check database')
+    if ApiWhisper().check_connection():
+        DrawObj()
+    else:
+        is_internet_connected = requests.get('https://8.8.8.8')
+        if is_internet_connected.status_code == 200:
+            messagebox.showerror('Server', 'Server non disponibile!')
+        else:
+            messagebox.showerror('Internet', 'Internet non disponibile!')
