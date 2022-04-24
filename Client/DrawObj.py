@@ -13,6 +13,8 @@ class DrawObj:
 
         # Window
         midnight_blue = '#151B54'
+        solarized_blue = '#9bb5de'
+        solarized_orange = '#6682ff'
         self.window = tk.Tk()
         self.window.geometry('500x500')
         self.window['background'] = midnight_blue
@@ -21,49 +23,49 @@ class DrawObj:
         # Label
         self.label_fiscal_code = tk.Label(self.window,
                                           text='Codice fiscale',
-                                          fg='orange',
+                                          fg=solarized_blue,
                                           bg=midnight_blue,
                                           font=('Courier', 16, 'bold'))
 
         self.label_login_fiscal_code = tk.Label(self.window,
                                                 text='Codice fiscale',
-                                                fg='orange',
+                                                fg=solarized_blue,
                                                 bg=midnight_blue,
                                                 font=('Courier', 16, 'bold'))
 
         self.label_login_password = tk.Label(self.window,
                                              text='Password',
-                                             fg='orange',
+                                             fg=solarized_blue,
                                              bg=midnight_blue,
                                              font=('Courier', 16, 'bold'))
 
         self.label_name = tk.Label(self.window,
                                    text='Nome',
-                                   fg='orange',
+                                   fg=solarized_blue,
                                    bg=midnight_blue,
                                    font=('Courier', 16, 'bold'))
 
         self.label_surname = tk.Label(self.window,
                                       text='Cognome',
-                                      fg='orange',
+                                      fg=solarized_blue,
                                       bg=midnight_blue,
                                       font=('Courier', 16, 'bold'))
 
         self.label_password = tk.Label(self.window,
                                        text='Password',
-                                       fg='orange',
+                                       fg=solarized_blue,
                                        bg=midnight_blue,
                                        font=('Courier', 16, 'bold'))
 
         self.label_med_or_pharma = tk.Label(self.window,
                                             text='Medico o Farmacologo?',
-                                            fg='orange',
+                                            fg=solarized_blue,
                                             bg=midnight_blue,
                                             font=('Courier', 16, 'bold'))
 
         self.label_re_password = tk.Label(self.window,
                                           text='Re-Password',
-                                          fg='orange',
+                                          fg=solarized_blue,
                                           bg=midnight_blue,
                                           font=('Courier', 16, 'bold'))
 
@@ -105,50 +107,51 @@ class DrawObj:
                                      command=self.back)
 
         self.button_create_new_user = tk.Button(self.window,
-                                                text='Invia i dati!',
+                                                text='Registrati!',
                                                 bg='orange',
                                                 font=('Courier', 16, 'bold'),
                                                 command=self.send_data_for_new_registration)
 
         # TextBox
         self.tb_fiscal_code = tk.Entry(self.window,
-                                       bg='orange',
+                                       bg=solarized_orange,
                                        font=('Courier', 16, 'bold'))
 
         self.tb_name = tk.Entry(self.window,
-                                bg='orange',
+                                bg=solarized_orange,
                                 font=('Courier', 16, 'bold'))
 
         self.tb_surname = tk.Entry(self.window,
-                                   bg='orange',
+                                   bg=solarized_orange,
                                    font=('Courier', 16, 'bold'))
 
         self.tb_password = tk.Entry(self.window,
-                                    bg='orange',
+                                    bg=solarized_orange,
                                     font=('Courier', 16, 'bold'),
                                     show='*')
 
         self.tb_re_password = tk.Entry(self.window,
-                                       bg='orange',
+                                       bg=solarized_orange,
                                        font=('Courier', 16, 'bold'),
                                        show='*')
 
         self.tb_login_password = tk.Entry(self.window,
-                                          bg='orange',
+                                          bg=solarized_orange,
                                           font=('Courier', 16, 'bold'),
                                           show='*')
 
         self.login_cf = tk.Entry(self.window,
-                                 bg='orange',
+                                 bg=solarized_orange,
                                  font=('Courier', 16, 'bold'))
 
         # DropDown
         option = ['Medico', 'Farmacologo']
         self.med_or_pharma = tk.StringVar(self.window)
+        self.med_or_pharma.set('Medico')
         self.option_doctor_or_ph = tk.OptionMenu(self.window,
                                                  self.med_or_pharma,
                                                  *option)
-        self.option_doctor_or_ph.config(bg='Orange', font=('Courier', 16, 'bold'), width=15)
+        self.option_doctor_or_ph.config(bg=solarized_orange, font=('Courier', 16, 'bold'), width=15)
 
         # MainLoop
         self.window.mainloop()
@@ -194,51 +197,71 @@ class DrawObj:
 
         self.button_create_new_user.place(x=150, y=450)
 
+        self.button_back.place(x=10, y=450)
+
     def send_data_for_new_registration(self):
-        we_can_go = False
+
         fiscal_code = self.tb_fiscal_code.get()
         password = self.tb_password.get()
         re_password = self.tb_re_password.get()
         name = self.tb_name.get()
         surname = self.tb_surname.get()
-        med_or_ph = self.med_or_pharma
 
         if Defender.name_surname(name) and Defender.name_surname(surname):
             self.tb_name.config(bg='green')
             self.tb_surname.config(bg='green')
-            we_can_go = True
+            go_name = True
         else:
             self.tb_name.config(bg='red')
             self.tb_surname.config(bg='red')
-            we_can_go = False
+            go_name = False
 
         if Defender.fiscal_code(fiscal_code):
             self.tb_fiscal_code.config(bg='green')
-            we_can_go = True
+            go_fiscal_code = True
         else:
             self.tb_fiscal_code.config(bg='red')
-            we_can_go = False
+            go_fiscal_code = False
 
         if Defender.password(password) and Defender.password(re_password) and \
                 Defender.password_is_re_password(password, re_password):
             password = Defender.get_password_hash(password)
             self.tb_password.config(bg='green')
             self.tb_re_password.config(bg='green')
-            we_can_go = True
+            go_pass = True
         else:
             self.tb_password.config(bg='red')
             self.tb_re_password.config(bg='red')
-            we_can_go = False
-        if we_can_go:
+            go_pass = False
+
+        if go_pass and go_name and go_fiscal_code:
             obj_to_send = {'Nome': name,
                            'Cognome': surname,
-                           'Ruolo': str(med_or_ph.get()),
+                           'Ruolo': str(self.med_or_pharma.get()),
                            'CF': fiscal_code,
                            'Password': password}
 
             self.registration_complete(obj_to_send)
 
     def registration_complete(self, obj: json):
+        self.unpack_positions()
+        ApiWhisper().post_new_user_to_server(obj)
+        self.begin()
+
+    def back(self):
+        self.unpack_positions()
+        self.begin()
+
+    def log_me_in(self):
+        self.begin()
+
+    def unpack_positions(self):
+        self.label_login_fiscal_code.place_forget()
+        self.login_cf.place_forget()
+        self.label_login_password.place_forget()
+
+        self.tb_login_password.place_forget()
+        self.button_back.place_forget()
         self.label_surname.place_forget()
         self.label_name.place_forget()
         self.label_password.place_forget()
@@ -254,11 +277,3 @@ class DrawObj:
         self.label_re_password.place_forget()
         self.tb_re_password.place_forget()
         self.button_create_new_user.place_forget()
-        ApiWhisper().post_new_user_to_server(obj)
-        self.begin()
-
-    def back(self):
-        self.begin()
-
-    def log_me_in(self):
-        self.begin()
