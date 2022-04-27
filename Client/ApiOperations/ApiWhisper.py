@@ -20,9 +20,15 @@ class ApiWhisper:
         except Exception as e:
             print(e)
 
-    def post_new_user_to_server(self, obj: json):
-        api_prefix = r'/api/covid/new_user/'
-        api = self.endpoint + api_prefix
-        request = requests.post(api, json=obj,
-                                headers={"Content-Type": "application/json"})
-        print(request.status_code)
+    def post_new_user_to_server(self, obj: json) -> bool:
+        try:
+            api_prefix = r'/api/covid/new_user/'
+            api = self.endpoint + api_prefix
+            request = requests.post(api, json=obj,
+                                    headers={"Content-Type": "application/json"})
+            if request.status_code == 200:
+                return True
+            return False
+        except Exception as e:
+            print(e)
+            return False

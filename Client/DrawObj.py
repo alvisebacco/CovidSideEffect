@@ -12,9 +12,9 @@ class DrawObj:
         """Istanzio gli oggetti della UI"""
 
         # Window
-        midnight_blue = '#151B54'
-        solarized_blue = '#9bb5de'
-        solarized_orange = '#6682ff'
+        midnight_blue: str = '#151B54'
+        solarized_blue: str = '#9bb5de'
+        solarized_orange: str = '#6682ff'
         self.window = tk.Tk()
         self.window.geometry('500x500')
         self.window['background'] = midnight_blue
@@ -245,8 +245,12 @@ class DrawObj:
 
     def registration_complete(self, obj: json):
         self.unpack_positions()
-        ApiWhisper().post_new_user_to_server(obj)
-        self.begin()
+        if ApiWhisper().post_new_user_to_server(obj):
+            messagebox.showinfo('Server', 'Registrazione completata!')
+            self.begin()
+        else:
+            messagebox.showerror('Server', 'Registrazaione non completata, riprovare più tardi')
+            self.begin()
 
     def back(self):
         self.unpack_positions()
@@ -259,7 +263,6 @@ class DrawObj:
         self.label_login_fiscal_code.place_forget()
         self.login_cf.place_forget()
         self.label_login_password.place_forget()
-
         self.tb_login_password.place_forget()
         self.button_back.place_forget()
         self.label_surname.place_forget()
