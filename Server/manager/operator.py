@@ -31,30 +31,52 @@ class DatabaseOperations:
 
         try:
             self.connection = psycopg2.connect('host=' + self.host + ' '
-                                               'port=' + self.port + ' '
-                                               'dbname=' + self.database + ' '
-                                               'user=' + self.username + ' '
-                                               'password=' + self.password)
+                                                                     'port=' + self.port + ' '
+                                                                                           'dbname=' + self.database + ' '
+                                                                                                                       'user=' + self.username + ' '
+                                                                                                                                                 'password=' + self.password)
 
             print(Fore.GREEN + '[+] Connected to database: ', self.database)
         except (Exception, psycopg2.DatabaseError) as e:
             print(Fore.RED + str(e))
 
+    async def check_and_create_tables(self):
+        """ creo le tabelle se non esistono gia' """
+
+        cursor = self.connection.cursor()
+        table_user = r'Customers'
+        column_name = r'Name'
+        column_surname = r'Surname'
+        column_pass = r'Passwd'
+        column_role = r'Role'
+        column_cf = r'CF'
+
+        sql = "CREATE TABLE IF NOT EXISTS %s " \
+              "(%s varchar(50) NOT NULL, " \
+              "%s varchar(50) NOT NULL, " \
+              "%s varchar(50) NOT NULL, " \
+              "%s varchar(50) NOT NULL, " \
+              "%s varchar(50) NOT NULL)" % (table_user, column_name, column_surname, column_role, column_pass, column_cf)
+        try:
+            cursor.execute(sql)
+            self.connection.commit()
+        except (Exception, psycopg2.DatabaseError) as e:
+            print(Fore.RED + str(e))
+
     def post_new_user(self, new_user_data: json) -> str:
         """ inserisco i dati utente nel db """
+        table = 'customers'
         name = new_user_data['Nome']
         surname = new_user_data['Cognome']
         role = new_user_data['Ruolo']
         fiscal_code = new_user_data['CF']
         password = new_user_data['Password']
 
-        sql = 'INSERT INTO Users (Nome) VALUES (%s), (Alfonso)'
-
+        sql = "INSERT INTO %s (name, surname, role, passwd, cf) VALUES ('%s', '%s', '%s', '%s', '%s')" \
+              % (table, name, surname, role, password, fiscal_code)
         cursor = self.connection.cursor()
         cursor.execute(sql)
-        _id = cursor.fetchone()[0]
         self.connection.commit()
-        self.connection.close()
         return 'New user created!'
 
     def login(self, login: json) -> str:

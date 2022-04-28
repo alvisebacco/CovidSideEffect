@@ -26,8 +26,13 @@ def create_app():
 
 
 async def async_function_on_start():
+    tasks = []
     database_thread = asyncio.create_task(DatabaseOperations().check_database_instance())
-    await database_thread
+    check_and_create_tables = asyncio.create_task(DatabaseOperations().check_and_create_tables())
+    tasks.append(database_thread)
+    tasks.append(check_and_create_tables)
+    for task in tasks:
+        await task
 
 
 if __name__ == '__main__':
