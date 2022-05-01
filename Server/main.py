@@ -6,6 +6,10 @@
 
 # Made with <3
 
+from manager.operator import DatabaseOperations
+import asyncio
+from colorama import Fore
+
 try:
     from flask import Flask
     from flask_cors import CORS
@@ -21,6 +25,18 @@ def create_app():
     return application
 
 
+async def async_function_on_start():
+    tasks = []
+    database_thread = asyncio.create_task(DatabaseOperations().check_database_instance())
+    check_and_create_tables = asyncio.create_task(DatabaseOperations().check_and_create_tables())
+    tasks.append(database_thread)
+    tasks.append(check_and_create_tables)
+    for task in tasks:
+        await task
+
+
 if __name__ == '__main__':
+    asyncio.run(async_function_on_start())
+    print(Fore.GREEN + '[+] Creating API server...')
     app = create_app()
     app.run(host='127.0.0.1', port=5006, use_reloader=False, debug=False)

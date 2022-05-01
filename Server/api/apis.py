@@ -14,4 +14,9 @@ def api_covid_side_effects():
         new_user_data = request.get_json()
         return ModelCovid.post_new_user(new_user_data)
 
+    @api_covid.route('/covid/login/', methods=['POST'])
+    def login():
+        login_data = request.get_json()
+        return ModelCovid.login(login_data)
+
     return api_covid
