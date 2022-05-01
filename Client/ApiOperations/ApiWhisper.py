@@ -32,3 +32,21 @@ class ApiWhisper:
         except Exception as e:
             print(e)
             return False
+
+    def authenticate(self, obj: json) -> tuple:
+        login_access = False
+        try:
+            api_prefix = r'/api/covid/login/'
+            api = self.endpoint + api_prefix
+            request = requests.post(api, json=obj,
+                                    headers={"Content-Type": "application/json"})
+            if request.status_code == 200:
+                response = request.text
+                response = json.loads(response)
+                name = response['name']
+                surname = response['surname']
+                if surname != 'Accesso negato':
+                    login_access = True
+                return name, surname, login_access
+        except Exception as e:
+            print(e)

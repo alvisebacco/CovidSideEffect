@@ -31,10 +31,10 @@ class DatabaseOperations:
 
         try:
             self.connection = psycopg2.connect('host=' + self.host + ' '
-                                                                     'port=' + self.port + ' '
-                                                                                           'dbname=' + self.database + ' '
-                                                                                                                       'user=' + self.username + ' '
-                                                                                                                                                 'password=' + self.password)
+                                               'port=' + self.port + ' '
+                                               'dbname=' + self.database + ' '
+                                               'user=' + self.username + ' '
+                                               'password=' + self.password)
 
             print(Fore.GREEN + '[+] Connected to database: ', self.database)
         except (Exception, psycopg2.DatabaseError) as e:
@@ -56,7 +56,8 @@ class DatabaseOperations:
               "%s varchar(50) NOT NULL, " \
               "%s varchar(50) NOT NULL, " \
               "%s varchar(50) NOT NULL, " \
-              "%s varchar(50) NOT NULL)" % (table_user, column_name, column_surname, column_role, column_pass, column_cf)
+              "%s varchar(50) NOT NULL)" % (table_user, column_name, column_surname,
+                                            column_role, column_pass, column_cf)
         try:
             cursor.execute(sql)
             self.connection.commit()
@@ -65,6 +66,7 @@ class DatabaseOperations:
 
     def post_new_user(self, new_user_data: json) -> str:
         """ inserisco i dati utente nel db """
+
         table = 'customers'
         name = new_user_data['Nome']
         surname = new_user_data['Cognome']
@@ -79,8 +81,29 @@ class DatabaseOperations:
         self.connection.commit()
         return 'New user created!'
 
-    def login(self, login: json) -> str:
-        pass
+    def login(self, credential: json) -> json:
+        name, surname = None, None
+        password = credential['password']
+        fiscal_code = credential['cf']
+        table = 'customers'
+        sql = "SELECT name, surname FROM %s WHERE cf='%s' AND passwd='%s'" % (table, fiscal_code, password)
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(sql)
+            response = cursor.fetchone()
+            self.connection.commit()
+            if response is not None:
+                name = response[0]
+                surname = response[1]
+                login_success = {'name': name,
+                                 'surname': surname}
+                return login_success
+            else:
+                login_fail = {'name': 'Dati per l\'accesso invalidi',
+                              'surname': 'Accesso negato'}
+                return login_fail
+        except (Exception, psycopg2.DatabaseError) as e:
+            print(Fore.RED + str(e))
 
     async def check_database_instance(self) -> bool:
         try:
