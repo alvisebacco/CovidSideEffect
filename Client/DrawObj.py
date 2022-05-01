@@ -12,9 +12,9 @@ class DrawObj:
         """Istanzio gli oggetti della UI"""
 
         # Window
-        midnight_blue = '#151B54'
-        solarized_blue = '#9bb5de'
-        solarized_orange = '#6682ff'
+        midnight_blue: str = '#151B54'
+        solarized_blue: str = '#9bb5de'
+        solarized_orange: str = '#6682ff'
         self.window = tk.Tk()
         self.window.geometry('500x500')
         self.window['background'] = midnight_blue
@@ -87,18 +87,18 @@ class DrawObj:
                                       font=('Courier', 16, 'bold'),
                                       command=self.login)
 
+        self.button_confirm_login = tk.Button(self.window,
+                                              text='Login',
+                                              bg='orange',
+                                              font=('Courier', 16, 'bold'),
+                                              command=self.send_data_to_login)
+
         # Button
         self.button_new_user = tk.Button(self.window,
                                          text='Registrati',
                                          bg='orange',
                                          font=('Courier', 16, 'bold'),
                                          command=self.new_user)
-
-        self.button_log_me_in = tk.Button(self.window,
-                                          text='Registrati',
-                                          bg='orange',
-                                          font=('Courier', 16, 'bold'),
-                                          command=self.log_me_in)
 
         self.button_back = tk.Button(self.window,
                                      text='Indietro',
@@ -140,7 +140,7 @@ class DrawObj:
                                           font=('Courier', 16, 'bold'),
                                           show='*')
 
-        self.login_cf = tk.Entry(self.window,
+        self.tb_login_cf = tk.Entry(self.window,
                                  bg=solarized_orange,
                                  font=('Courier', 16, 'bold'))
 
@@ -166,12 +166,24 @@ class DrawObj:
         self.button_login.place_forget()
 
         self.label_login_fiscal_code.place(x=110, y=150)
-        self.login_cf.place(x=110, y=180)
+        self.tb_login_cf.place(x=110, y=180)
         self.label_login_password.place(x=110, y=210)
 
         self.tb_login_password.place(x=110, y=240)
-        self.button_login.place(x=110, y=270)
+        self.button_confirm_login.place(x=110, y=270)
         self.button_back.place(x=10, y=450)
+
+    def send_data_to_login(self):
+        fiscal_code = self.tb_login_cf.get()
+        password = self.tb_login_password.get()
+        password = Defender.get_password_hash(password)
+        data_to_send = {'cf': fiscal_code,
+                        'password': password}
+        name, surname, login_access = ApiWhisper().authenticate(data_to_send)
+        if login_access:
+            messagebox.showinfo('Server', 'Benvenuto ' + name + ' ' + surname + '!')
+        else:
+            messagebox.showerror('Server', 'Credenziali invalide :/')
 
     def new_user(self):
         self.button_new_user.place_forget()
@@ -200,7 +212,6 @@ class DrawObj:
         self.button_back.place(x=10, y=450)
 
     def send_data_for_new_registration(self):
-
         fiscal_code = self.tb_fiscal_code.get()
         password = self.tb_password.get()
         re_password = self.tb_re_password.get()
@@ -245,21 +256,21 @@ class DrawObj:
 
     def registration_complete(self, obj: json):
         self.unpack_positions()
-        ApiWhisper().post_new_user_to_server(obj)
-        self.begin()
+        if ApiWhisper().post_new_user_to_server(obj):
+            messagebox.showinfo('Server', 'Registrazione completata!')
+            self.begin()
+        else:
+            messagebox.showerror('Server', 'Registrazaione non completata, riprovare più tardi')
+            self.begin()
 
     def back(self):
         self.unpack_positions()
         self.begin()
 
-    def log_me_in(self):
-        self.begin()
-
     def unpack_positions(self):
         self.label_login_fiscal_code.place_forget()
-        self.login_cf.place_forget()
+        self.tb_login_cf.place_forget()
         self.label_login_password.place_forget()
-
         self.tb_login_password.place_forget()
         self.button_back.place_forget()
         self.label_surname.place_forget()
