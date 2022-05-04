@@ -34,6 +34,9 @@ class ApiWhisper:
             return False
 
     def authenticate(self, obj: json) -> tuple:
+        name = None
+        surname = None
+        role = None
         login_access = False
         try:
             api_prefix = r'/api/covid/login/'
@@ -45,8 +48,10 @@ class ApiWhisper:
                 response = json.loads(response)
                 name = response['name']
                 surname = response['surname']
+                role = response['role']
                 if surname != 'Accesso negato':
                     login_access = True
-                return name, surname, login_access
+                return name, surname, role, login_access
         except Exception as e:
             print(e)
+            return name, surname, role, login_access

@@ -1,5 +1,6 @@
 import hashlib
 
+
 class Defender:
 
     @staticmethod
@@ -31,8 +32,3 @@ class Defender:
         if passwd == re_passwd:
             return True
         return False
-
-    @staticmethod
-    def get_password_hash(password: str) -> str:
-        hashed_passwd = hashlib.sha1(password.encode('utf-8')).hexdigest()
-        return str(hashed_passwd)
