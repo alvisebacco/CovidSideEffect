@@ -1,4 +1,5 @@
 import hashlib
+from datetime import datetime
 
 
 class Defender:
@@ -30,5 +31,13 @@ class Defender:
     @staticmethod
     def password_is_re_password(passwd: str, re_passwd: str) -> bool:
         if passwd == re_passwd:
+            return True
+        return False
+
+    @staticmethod
+    def year_is_only_year(yyyy: int) -> bool:
+        this_year = datetime.today().year
+        this_year = int(this_year)
+        if yyyy-100 <= yyyy <= this_year:
             return True
         return False

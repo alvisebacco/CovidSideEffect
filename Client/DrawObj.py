@@ -2,10 +2,10 @@ import tkinter as tk
 from tkinter import messagebox
 import requests
 import json
-
+from Manager.InstantiateGraphObject import InstantiateGraphicalObject
 from ApiOperations.ApiWhisper import ApiWhisper
 from DefensiveCode import Defender
-from DrawMainInterface import DrawDoctor, DrawPharmaMan
+from DrawMainInterface import DrawPharmaMan
 
 
 class DrawObj:
@@ -185,7 +185,7 @@ class DrawObj:
         if login_access and name and surname:
             messagebox.showinfo('Server', 'Benvenuto ' + name + ' ' + surname + '!')
             if role == 'Medico':
-                DrawDoctor().draw_title(name, surname)
+                InstantiateGraphicalObject().virtual_title(name, surname)
             elif role == 'Farmacologo':
                 DrawPharmaMan().draw_title(name, surname)
         elif not login_access and name and surname and role is None:
