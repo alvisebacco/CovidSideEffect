@@ -44,14 +44,21 @@ class DatabaseOperations:
     async def check_and_create_table_reaction(self):
         """tabella di reazione"""
         table_reaction = 'reaction'
-        column_severity = 'severity'
-        column_description = 'description'
-        column_reporting = 'reporting'
+        # Ogni fattore di rischio è caratterizzato da un
+        # nome univoco,
+        # una descrizione e il
+        # livello di rischio associato.
+        cloumn_id_ = 'id_'
+        column_severity = 'severity'  # valore che prendo dalla slide bar
+        column_description = 'description'  # descrizione a campo libero
+        column_reporting = 'reporting'  # medico che riporta, Foreign Key
 
         sql = "CREATE TABLE IF NOT EXISTS %s " \
-              "(%s varchar(50) PRIMARY KEY, " \
+              "(%s varchar(50) PRIMARY KEY," \
               "%s varchar(50) NOT NULL, " \
-              "%s varchar(50) NOT NULL)" % (table_reaction, column_severity, column_description, column_reporting)
+              "%s varchar(50), " \
+              "%s varchar(50) NOT NULL," \
+              "foreign key(reporting) REFERENCES customers(cf));" % (table_reaction, cloumn_id_, column_severity, column_description, column_reporting)
 
         await self.create_table(sql)
 
@@ -59,6 +66,16 @@ class DatabaseOperations:
         """ tabella di inserimento dei dati principali"""
 
         table_reporting = 'reporting'
+
+        # Ogni segnalazione è caratterizzata da un
+
+        # codice univoco, column_id
+        # dall’indicazione del paziente a cui fa riferimento, column_patient FK
+        # dall’indicazione della reazione avversa, column_adverse_reaction
+        # dalla data della reazione avversa, column_date_of_reaction
+        # dalla data di segnalazione, column_date_reporting
+        # e dalle vaccinazioni ricevute nei..., vaccination_carried_out
+
         column_id = 'id_'
         column_patient = 'patient'
         column_adverse_reaction = 'adv_reaction'
@@ -84,15 +101,28 @@ class DatabaseOperations:
         column_id = 'id_'
         column_description = 'Description'
         column_risk_level = 'Risk_level'
+        column_doctor = 'Doctor'
 
         sql = "CREATE TABLE IF NOT EXISTS %s " \
               "(%s varchar(50) PRIMARY KEY, " \
               "%s varchar(50) NOT NULL, " \
-              "%s varchar(50) NOT NULL)" % (table_user, column_id, column_description, column_risk_level)
+              "%s varchar(50) NOT NULL," \
+              "%s varchar(50) NOT NULL," \
+              "foreign key(doctor) REFERENCES customers(cf));" % (table_user, column_id, column_description,
+                                                                 column_risk_level, column_doctor)
         await self.create_table(sql)
 
     async def check_and_create_table_vaccination(self):
         """tabella con i dati dei vaccini"""
+        # Ogni vaccinazione è caratterizzata da:
+
+        # paziente a cui si riferisce,
+        # segnalazioni a cui è legata,
+        # vaccino somministrato (AstraZeneca, Pfizer, Moderna, Sputnik, Sinovac, antinfluenzale, …),
+        # tipo della somministrazione (I, II, III o IV dose, dose unica),
+        # sede presso la quale è avvenuta la vaccinazione e
+        # data di vaccinazione.
+
         table_vaccination = 'vaccination'
         column_id = 'id_'
         column_patient = 'patient'
@@ -128,13 +158,13 @@ class DatabaseOperations:
         column_doctor = 'doctor'
 
         sql = "CREATE TABLE IF NOT EXISTS %s " \
-              "(%s varchar(50) NOT NULL, " \
-              "%s varchar(50) NOT NULL, " \
-              "%s varchar(50) NOT NULL, " \
-              "%s varchar(50) NOT NULL, " \
+              "(%s varchar(50), " \
+              "%s varchar(50), " \
+              "%s varchar(50), " \
               "%s varchar(50) NOT NULL, " \
               "%s varchar(50) NOT NULL, " \
               "%s varchar(50) PRIMARY KEY, " \
+              "%s varchar(50) NOT NULL, " \
               "foreign key(doctor) REFERENCES customers(cf));" % (table_patient, column_job, column_risk_factor,
                                                                   column_previous_vaccinations,
                                                                   column_year_of_birth,
@@ -176,6 +206,48 @@ class DatabaseOperations:
         self.connection.commit()
         return 'New user created!'
 
+    def post_new_patient(self, patient_data) -> json:
+        job = patient_data['job']
+        yyyy = patient_data['yyyy']
+        city = patient_data['city']
+        cf = patient_data['CF']
+        med = patient_data['med']
+
+        try:
+            cursor = self.connection.cursor()
+            sql = "SELECT * FROM patient WHERE id_='%s'" % cf
+            cursor.execute(sql)
+            sql_result = cursor.fetchone()
+            if sql_result is None:
+                sql = "INSERT INTO patient (job, date_of_birth, province_residence, id_, doctor) " \
+                      "VALUES (%s, %s, %s, %s, %s)"
+                cursor.execute(sql, (job, yyyy, city, cf, med))
+                self.connection.commit()
+                login_success = {'Server': 'Server',
+                                 'message': 'Paziente inserito!'}
+                return login_success
+            else:
+                login_failed = {'Server': 'Server',
+                                'message': 'Paziente già presente nel database!'}
+                return login_failed
+        except Exception as e:
+            login_failed = {'Server': 'Server exception!',
+                            'message': str(e)}
+            return login_failed
+
+    def post_new_reaction(self, reaction: json) -> json:
+        is_smoker = reaction['smoker']
+        is_fatty = reaction['fatty']
+        cardioonco = reaction['cardioonco']
+        hypert = reaction['hypert']
+        reaction_date = reaction['reaction_date']
+        cf_primary_key = reaction_date['cf_primary_key']
+        try:
+            cursor = self.connection.cursor()
+            sql = "INSERT INTO reaction"
+        except Exception as e:
+            print(e)
+
     def login(self, credential: json) -> json:
         name, surname = None, None
         password = credential['password']
@@ -183,6 +255,7 @@ class DatabaseOperations:
         fiscal_code = credential['cf']
         # SQL injection
         sql = "SELECT name, surname, role FROM customers WHERE cf='%s' AND passwd='%s'" % (fiscal_code, password)
+
         # NO SQL injection
         # sql = "SELECT name, surname, role FROM customers WHERE cf=%s AND passwd=%s"
         cursor = self.connection.cursor()

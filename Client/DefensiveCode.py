@@ -3,7 +3,6 @@ from datetime import datetime
 
 
 class Defender:
-
     @staticmethod
     def name_surname(word: str) -> bool:
         if len(word) > 0:
@@ -38,6 +37,14 @@ class Defender:
     def year_is_only_year(yyyy: int) -> bool:
         this_year = datetime.today().year
         this_year = int(this_year)
-        if yyyy-100 <= yyyy <= this_year:
+        if this_year-100 <= yyyy <= this_year:
             return True
         return False
+
+    @staticmethod
+    def check_and_get_datetime_reaction_date(date: str) -> tuple:
+        try:
+            date_ = datetime.strptime(date, '%d/%m/%Y')
+            return date_, True
+        except Exception as e:
+            return date, False

@@ -43,6 +43,7 @@ async def async_function_on_start():
     tasks.append(check_and_create_table_patient)
     tasks.append(check_and_create_table_vaccination)
     tasks.append(check_and_create_table_risk)
+    tasks.append(check_and_create_table_reaction)
     for task in tasks:
         await task
 

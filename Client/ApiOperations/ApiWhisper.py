@@ -33,13 +33,27 @@ class ApiWhisper:
             print(e)
             return False
 
+    def post_to_server(self, obj: json, api_prefix) -> tuple:
+        try:
+            api = self.endpoint + api_prefix
+            request = requests.post(api, json=obj,
+                                    headers={"Content-Type": "application/json"})
+            if request.status_code == 200:
+                response = request.text
+                response = json.loads(response)
+                server = response['Server']
+                message = response['message']
+                return server, message
+        except Exception as e:
+            print(e)
+
     def authenticate(self, obj: json) -> tuple:
         name = None
         surname = None
         role = None
         login_access = False
         try:
-            api_prefix = r'/api/covid/login/'
+            api_prefix = f'/api/covid/login/'
             api = self.endpoint + api_prefix
             request = requests.post(api, json=obj,
                                     headers={"Content-Type": "application/json"})

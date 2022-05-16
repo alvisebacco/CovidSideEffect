@@ -185,7 +185,7 @@ class DrawObj:
         if login_access and name and surname:
             messagebox.showinfo('Server', 'Benvenuto ' + name + ' ' + surname + '!')
             if role == 'Medico':
-                InstantiateGraphicalObject().virtual_title(name, surname)
+                InstantiateGraphicalObject(session=fiscal_code).virtual_title(name, surname)
             elif role == 'Farmacologo':
                 DrawPharmaMan().draw_title(name, surname)
         elif not login_access and name and surname and role is None:
