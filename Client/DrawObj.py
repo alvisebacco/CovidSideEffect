@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import messagebox
-import requests
 import json
 from Manager.InstantiateGraphObject import InstantiateGraphicalObject
 from ApiOperations.ApiWhisper import ApiWhisper

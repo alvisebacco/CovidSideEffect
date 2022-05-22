@@ -58,7 +58,8 @@ class DatabaseOperations:
               "%s varchar(50) NOT NULL, " \
               "%s varchar(50), " \
               "%s varchar(50) NOT NULL," \
-              "foreign key(reporting) REFERENCES customers(cf));" % (table_reaction, cloumn_id_, column_severity, column_description, column_reporting)
+              "foreign key(reporting) REFERENCES customers(cf));" % (
+                  table_reaction, cloumn_id_, column_severity, column_description, column_reporting)
 
         await self.create_table(sql)
 
@@ -109,7 +110,7 @@ class DatabaseOperations:
               "%s varchar(50) NOT NULL," \
               "%s varchar(50) NOT NULL," \
               "foreign key(doctor) REFERENCES customers(cf));" % (table_user, column_id, column_description,
-                                                                 column_risk_level, column_doctor)
+                                                                  column_risk_level, column_doctor)
         await self.create_table(sql)
 
     async def check_and_create_table_vaccination(self):
@@ -153,19 +154,25 @@ class DatabaseOperations:
         column_year_of_birth = 'date_of_birth'
         column_province_of_residence = 'province_residence'
         column_job = 'job'
-        column_risk_factor = 'risk_factor'
         column_previous_vaccinations = 'previous_vaccination'
         column_doctor = 'doctor'
+
+        # Fattori di rischio
+        column_is_smoker = 'is_smoker'
+        column_is_fatty = 'is_fatty'
+        column_cardioonco = 'is_cardioonco'
+        column_hyper = 'is_hyper'
 
         sql = "CREATE TABLE IF NOT EXISTS %s " \
               "(%s varchar(50), " \
               "%s varchar(50), " \
-              "%s varchar(50), " \
+              "%s varchar(50), %s varchar(50), %s varchar(50), %s varchar(50)," \
               "%s varchar(50) NOT NULL, " \
               "%s varchar(50) NOT NULL, " \
               "%s varchar(50) PRIMARY KEY, " \
               "%s varchar(50) NOT NULL, " \
-              "foreign key(doctor) REFERENCES customers(cf));" % (table_patient, column_job, column_risk_factor,
+              "foreign key(doctor) REFERENCES customers(cf));" % (table_patient, column_job, column_is_smoker,
+                                                                  column_is_fatty, column_hyper, column_cardioonco,
                                                                   column_previous_vaccinations,
                                                                   column_year_of_birth,
                                                                   column_province_of_residence, column_id,
@@ -236,16 +243,27 @@ class DatabaseOperations:
             return login_failed
 
     def post_new_reaction(self, reaction: json) -> json:
+        # Tabella paziente
         is_smoker = reaction['smoker']
         is_fatty = reaction['fatty']
         cardioonco = reaction['cardioonco']
         hypert = reaction['hypert']
         reaction_date = reaction['reaction_date']
-        cf_primary_key = reaction_date['cf_primary_key']
+        cf_primary_key = reaction['cf_primary_key']
+
         try:
             cursor = self.connection.cursor()
-            sql = "INSERT INTO reaction"
-        except Exception as e:
+            sql = """UPDATE patient SET is_smoker=%s, is_fatty=%s, is_hyper=%s, is_cardioonco=%s
+                  WHERE id_=%s"""
+            cursor.execute(sql, (is_smoker, is_fatty, hypert, cardioonco, cf_primary_key))
+            self.connection.commit()
+
+
+
+            success = {'Server': 'Server',
+                       'message': 'Paziente aggiornato!'}
+            return success
+        except (Exception, psycopg2.DatabaseError) as e:
             print(e)
 
     def login(self, credential: json) -> json:

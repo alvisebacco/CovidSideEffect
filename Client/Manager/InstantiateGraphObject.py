@@ -276,14 +276,11 @@ class InstantiateGraphicalObject(DrawMainObj):
         severity = self.slider.get()
 
         if cf and date:
-            vaccination_received = []
             vaccination_dates = []
             vaccination_doses = []
             vaccination_places = []
-            object_to_send = {}
+            object_to_send = []
             for vaccination in vaccinations:
-                if vaccination != 'Non':
-                    vaccination_received.append(vaccination)
                 if vaccination != 'Non':
                     vaccination_date_is_not_good = True
                     while vaccination_date_is_not_good:
@@ -291,7 +288,11 @@ class InstantiateGraphicalObject(DrawMainObj):
                                                                           f'espressa in gg/mm/aaaa')
                         iso_vaccination_date, its_ok = Defender.check_and_get_datetime_reaction_date(vaccination_date)
                         if its_ok:
-                            vaccination_dates.append(vaccination_date)
+                            vaccination_dates.append({
+                                'Vaccinazione': vaccination,
+                                'Data della vaccinazione': vaccination_date
+                            })
+
                             vaccination_date_is_not_good = False
                         else:
                             vaccination_date_is_not_good = True
@@ -303,7 +304,10 @@ class InstantiateGraphicalObject(DrawMainObj):
                                                               f'si segnala la reazione avversa?'
                                                               f'Indicare solo I, II, III, IV o unica')
                         if dose in allowed_doses:
-                            vaccination_doses.append(dose)
+                            vaccination_doses.append({
+                                'Vaccinazione': vaccination,
+                                'Dose': dose
+                            })
                             dose_is_not_good = False
                         else:
                             dose_is_not_good = True
@@ -312,7 +316,10 @@ class InstantiateGraphicalObject(DrawMainObj):
                         vaccination_place = simpledialog.askstring('Centro vaccinale',
                                                                    f'Dove è stata eseguita la vaccinazione '
                                                                    f'per {vaccination}?')
-                    vaccination_places.append(vaccination_place)
+                    vaccination_places.append({
+                        'Vaccinazione': vaccination,
+                        'Vaccinato presso': vaccination_place
+                    })
 
             object_to_send = {'smoker': is_smoker,
                               'fatty': is_fatty,
@@ -320,13 +327,13 @@ class InstantiateGraphicalObject(DrawMainObj):
                               'hypert': is_hypertension,
                               'reaction_date': str(reaction_date),
                               'cf_primary_key': cf_patient,
-                              'vaccination_received': vaccination_received,
                               'vaccination_dates': vaccination_dates,
                               'vaccination_doses': vaccination_doses,
                               'vaccination_places': vaccination_places
                               }
             api_prefix = f'/api/covid/new_reaction/'
             server, message = ApiWhisper().post_to_server(object_to_send, api_prefix)
+            messagebox.showinfo(server, message)
 
     def inset_into_cf(self, e):
         self.tb_cf_existing_patient.insert(0, e)
