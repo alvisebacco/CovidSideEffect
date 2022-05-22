@@ -15,3 +15,11 @@ class ModelCovid:
     @staticmethod
     def login(login_obj: json):
         return DatabaseOperations().login(login_obj)
+
+    @staticmethod
+    def post_patient(patient_data: json):
+        return DatabaseOperations().post_new_patient(patient_data)
+
+    @staticmethod
+    def post_reaction(reaction: json):
+        return DatabaseOperations().post_new_reaction(reaction)

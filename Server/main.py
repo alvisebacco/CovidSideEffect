@@ -26,11 +26,24 @@ def create_app():
 
 
 async def async_function_on_start():
+    """Creo una lista di tasks da eseguire in modo asincrono"""
     tasks = []
+
     database_thread = asyncio.create_task(DatabaseOperations().check_database_instance())
-    check_and_create_tables = asyncio.create_task(DatabaseOperations().check_and_create_tables())
+    check_and_create_table_user = asyncio.create_task(DatabaseOperations().check_and_create_table_user())
+    check_and_create_table_reporting = asyncio.create_task(DatabaseOperations().check_and_create_table_reporting())
+    check_and_create_table_patient = asyncio.create_task(DatabaseOperations().check_and_create_table_patient())
+    check_and_create_table_risk = asyncio.create_task(DatabaseOperations().check_and_create_table_risk())
+    check_and_create_table_vaccination = asyncio.create_task(DatabaseOperations().check_and_create_table_vaccination())
+    check_and_create_table_reaction = asyncio.create_task(DatabaseOperations().check_and_create_table_reaction())
+
     tasks.append(database_thread)
-    tasks.append(check_and_create_tables)
+    tasks.append(check_and_create_table_user)
+    tasks.append(check_and_create_table_reporting)
+    tasks.append(check_and_create_table_patient)
+    tasks.append(check_and_create_table_vaccination)
+    tasks.append(check_and_create_table_risk)
+    tasks.append(check_and_create_table_reaction)
     for task in tasks:
         await task
 
