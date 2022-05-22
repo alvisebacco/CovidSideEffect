@@ -1,14 +1,15 @@
 import tkinter as tk
 from tkinter import messagebox
-import requests
 import json
+from Manager.InstantiateGraphObject import InstantiateGraphicalObject
 from ApiOperations.ApiWhisper import ApiWhisper
 from DefensiveCode import Defender
+from DrawMainInterface import DrawPharmaMan
 
 
 class DrawObj:
     def __init__(self):
-        super().__init__()
+        super(DrawObj, self).__init__()
         """Istanzio gli oggetti della UI"""
 
         # Window
@@ -18,7 +19,7 @@ class DrawObj:
         self.window = tk.Tk()
         self.window.geometry('500x500')
         self.window['background'] = midnight_blue
-        self.window.title('Covid Side Effect Tracker')
+        self.window.title('CSET Login')
 
         # Label
         self.label_fiscal_code = tk.Label(self.window,
@@ -141,8 +142,8 @@ class DrawObj:
                                           show='*')
 
         self.tb_login_cf = tk.Entry(self.window,
-                                 bg=solarized_orange,
-                                 font=('Courier', 16, 'bold'))
+                                    bg=solarized_orange,
+                                    font=('Courier', 16, 'bold'))
 
         # DropDown
         option = ['Medico', 'Farmacologo']
@@ -176,14 +177,20 @@ class DrawObj:
     def send_data_to_login(self):
         fiscal_code = self.tb_login_cf.get()
         password = self.tb_login_password.get()
-        password = Defender.get_password_hash(password)
+        # password = Defender.get_password_hash(password)
         data_to_send = {'cf': fiscal_code,
                         'password': password}
-        name, surname, login_access = ApiWhisper().authenticate(data_to_send)
-        if login_access:
+        name, surname, role, login_access = ApiWhisper().authenticate(data_to_send)
+        if login_access and name and surname:
             messagebox.showinfo('Server', 'Benvenuto ' + name + ' ' + surname + '!')
-        else:
+            if role == 'Medico':
+                InstantiateGraphicalObject(session=fiscal_code).virtual_title(name, surname)
+            elif role == 'Farmacologo':
+                DrawPharmaMan().draw_title(name, surname)
+        elif not login_access and name and surname and role is None:
             messagebox.showerror('Server', 'Credenziali invalide :/')
+        else:
+            messagebox.showerror('Server', 'Server non raggiungibile, provare più tardi :/')
 
     def new_user(self):
         self.button_new_user.place_forget()
@@ -236,7 +243,7 @@ class DrawObj:
 
         if Defender.password(password) and Defender.password(re_password) and \
                 Defender.password_is_re_password(password, re_password):
-            password = Defender.get_password_hash(password)
+            # password = Defender.get_password_hash(password)
             self.tb_password.config(bg='green')
             self.tb_re_password.config(bg='green')
             go_pass = True
@@ -288,3 +295,4 @@ class DrawObj:
         self.label_re_password.place_forget()
         self.tb_re_password.place_forget()
         self.button_create_new_user.place_forget()
+        self.button_confirm_login.place_forget()

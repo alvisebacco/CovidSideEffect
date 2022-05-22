@@ -1,7 +1,8 @@
 import hashlib
+from datetime import datetime
+
 
 class Defender:
-
     @staticmethod
     def name_surname(word: str) -> bool:
         if len(word) > 0:
@@ -33,6 +34,17 @@ class Defender:
         return False
 
     @staticmethod
-    def get_password_hash(password: str) -> str:
-        hashed_passwd = hashlib.sha1(password.encode('utf-8')).hexdigest()
-        return str(hashed_passwd)
+    def year_is_only_year(yyyy: int) -> bool:
+        this_year = datetime.today().year
+        this_year = int(this_year)
+        if this_year-100 <= yyyy <= this_year:
+            return True
+        return False
+
+    @staticmethod
+    def check_and_get_datetime_reaction_date(date: str) -> tuple:
+        try:
+            date_ = datetime.strptime(date, '%d/%m/%Y')
+            return date_, True
+        except Exception as e:
+            return date, False
