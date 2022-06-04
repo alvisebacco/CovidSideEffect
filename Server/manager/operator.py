@@ -3,6 +3,7 @@ import psycopg2
 from configparser import ConfigParser
 from colorama import Fore
 import hashlib
+from datetime import datetime
 
 
 class DefensiveCode:
@@ -51,15 +52,17 @@ class DatabaseOperations:
         cloumn_id_ = 'id_'
         column_severity = 'severity'  # valore che prendo dalla slide bar
         column_description = 'description'  # descrizione a campo libero
-        column_reporting = 'reporting'  # medico che riporta, Foreign Key
+        column_reporting = 'reporting'  # paziente che riporta, Foreign Key
+        column_doctor = 'doctor'  # medico che riporta, Foreign Key
 
         sql = "CREATE TABLE IF NOT EXISTS %s " \
               "(%s varchar(50) PRIMARY KEY," \
               "%s varchar(50) NOT NULL, " \
               "%s varchar(50), " \
               "%s varchar(50) NOT NULL," \
-              "foreign key(reporting) REFERENCES customers(cf));" % (
-                  table_reaction, cloumn_id_, column_severity, column_description, column_reporting)
+              "foreign key(reporting) REFERENCES patient(id_), " \
+              "%s varchar(50) NOT NULL, foreign key(doctor) REFERENCES customers(cf));" % (
+                  table_reaction, cloumn_id_, column_severity, column_description, column_reporting, column_doctor)
 
         await self.create_table(sql)
 
@@ -83,16 +86,19 @@ class DatabaseOperations:
         column_date_of_reaction = 'reaction_date'
         column_date_of_reporting = 'reporting_date'
         column_vaccination_carried_out = 'vaccination_carried_out'
+        column_doctor = 'doctor'
 
         sql = "CREATE TABLE IF NOT EXISTS %s " \
               "(%s varchar(50) PRIMARY KEY, " \
               "%s varchar(50) NOT NULL, " \
               "%s varchar(50) NOT NULL, " \
+              "%s date NOT NULL, " \
+              "%s date NOT NULL, " \
               "%s varchar(50) NOT NULL, " \
-              "%s varchar(50) NOT NULL, " \
-              "%s varchar(50) NOT NULL)" % (table_reporting, column_id, column_patient, column_adverse_reaction,
-                                            column_date_of_reaction, column_date_of_reporting,
-                                            column_vaccination_carried_out)
+              "%s varchar(50) NOT NULL, foreign key(doctor) REFERENCES customers(cf))" % (
+                table_reporting, column_id, column_patient, column_adverse_reaction,
+                column_date_of_reaction, column_date_of_reporting,
+                column_vaccination_carried_out, column_doctor)
         await self.create_table(sql)
 
     async def check_and_create_table_risk(self):
@@ -103,14 +109,19 @@ class DatabaseOperations:
         column_description = 'Description'
         column_risk_level = 'Risk_level'
         column_doctor = 'Doctor'
+        column_patient = 'Patient'
 
         sql = "CREATE TABLE IF NOT EXISTS %s " \
               "(%s varchar(50) PRIMARY KEY, " \
               "%s varchar(50) NOT NULL, " \
               "%s varchar(50) NOT NULL," \
               "%s varchar(50) NOT NULL," \
-              "foreign key(doctor) REFERENCES customers(cf));" % (table_user, column_id, column_description,
-                                                                  column_risk_level, column_doctor)
+              "foreign key(doctor) REFERENCES customers(cf), " \
+              "%s varchar(50) NOT NULL, foreign key(patient) REFERENCES patient(id_));" % (table_user, column_id,
+                                                                                           column_description,
+                                                                                           column_risk_level,
+                                                                                           column_doctor,
+                                                                                           column_patient)
         await self.create_table(sql)
 
     async def check_and_create_table_vaccination(self):
@@ -131,18 +142,21 @@ class DatabaseOperations:
         column_vaccination = 'vaccination'
         column_dose = 'dose'
         column_site = 'site'
-        column_vaccination_date = 'vacciantion_date'
+        column_vaccination_date = 'vaccination_date'
+        column_doctor = 'doctor'
 
         sql = "CREATE TABLE IF NOT EXISTS %s " \
               "(%s varchar(50) PRIMARY KEY, " \
               "%s varchar(50) NOT NULL, " \
+              "%s varchar(50), FOREIGN KEY(reporting) REFERENCES  reporting(id_), " \
               "%s varchar(50) NOT NULL, " \
               "%s varchar(50) NOT NULL, " \
               "%s varchar(50) NOT NULL, " \
               "%s varchar(50) NOT NULL, " \
-              "%s varchar(50) NOT NULL)" % (table_vaccination, column_id, column_patient,
-                                            column_reporting, column_vaccination,
-                                            column_dose, column_site, column_vaccination_date)
+              "%s varchar(50) NOT NULL, FOREIGN KEY(doctor) REFERENCES customers(cf));" % (
+                  table_vaccination, column_id, column_patient,
+                  column_reporting, column_vaccination,
+                  column_dose, column_site, column_vaccination_date, column_doctor)
 
         await self.create_table(sql)
 
@@ -242,29 +256,144 @@ class DatabaseOperations:
                             'message': str(e)}
             return login_failed
 
+    def post_new_vaccination(self, vaccination: json) -> json:
+        response = {'Server': 'Server',
+                    'message': ''}
+        vaccination_ = vaccination['vaccination']
+        date_ = vaccination['date']
+        place_ = vaccination['place']
+        dose_ = vaccination['dose']
+        patient_ = vaccination['patient']
+        doctor_ = vaccination['doctor']
+        pk = f'{date_}{vaccination_}{doctor_}'
+        reporting = 'Non legata a reazione avversa'
+        pk = self.calculate_sha1(pk)
+        try:
+            cursor = self.connection.cursor()
+            sql = """INSERT INTO vaccination(id_, patient, vaccination, dose, site, vaccination_date, doctor) 
+                     VALUES(%s, %s, %s, %s, %s, %s, %s)"""
+            cursor.execute(sql, (pk, patient_, vaccination_, dose_, place_, date_, doctor_))
+            self.connection.commit()
+            response = {'Server': 'Server',
+                        'message': 'Vaccinazione inserita correttamente!'}
+        except Exception as e:
+            print(e)
+            response = {'Server': 'Server',
+                        'message': str(e)}
+        finally:
+            return response
+
     def post_new_reaction(self, reaction: json) -> json:
+        response = {'Server': 'Server',
+                    'message': ''}
         # Tabella paziente
+        today = datetime.now()
         is_smoker = reaction['smoker']
         is_fatty = reaction['fatty']
         cardioonco = reaction['cardioonco']
         hypert = reaction['hypert']
+        # DAti della reazione
         reaction_date = reaction['reaction_date']
         cf_primary_key = reaction['cf_primary_key']
-
+        all_vaccinations = self.extract_vaccinations(reaction['vaccination_array_of_dict'])
         try:
             cursor = self.connection.cursor()
-            sql = """UPDATE patient SET is_smoker=%s, is_fatty=%s, is_hyper=%s, is_cardioonco=%s
+            sql = """UPDATE patient SET is_smoker=%s, is_fatty=%s, is_hyper=%s, 
+            is_cardioonco=%s, previous_vaccination=%s
                   WHERE id_=%s"""
-            cursor.execute(sql, (is_smoker, is_fatty, hypert, cardioonco, cf_primary_key))
+            cursor.execute(sql, (is_smoker, is_fatty, hypert, cardioonco, all_vaccinations, cf_primary_key))
             self.connection.commit()
+            sql = """SELECT doctor from patient WHERE id_='%s'""" % cf_primary_key
+            cursor.execute(sql)
+            sql_result = cursor.fetchone()
+            if sql_result is None:
+                response = {'Server': 'Server',
+                            'message': 'Paziente non trovato! Registra il paziente!'}
+                return response
+            else:
+                for __reaction__ in reaction['vaccination_array_of_dict']:
+                    vaccination = __reaction__['vaccination']
+                    if vaccination != 'Non':
+                        vaccination_date = __reaction__['date']
+                        place = __reaction__['place']
+                        dose = __reaction__['dose']
+                        description = __reaction__['description']
+                        severity = __reaction__['severity']
+                for tuple_ in sql_result:
+                    doctor = tuple_
+                pk = f'({vaccination_date}{cf_primary_key}{vaccination}{reaction_date}{dose}{description})'
+                pk = self.calculate_sha1(pk)
+                sql = """INSERT INTO reporting (id_, patient, adv_reaction, reaction_date, reporting_date,
+                 vaccination_carried_out, doctor) VALUES (%s, %s, %s, %s, %s, %s, %s)"""
+                cursor.execute(sql, (pk, cf_primary_key, description, reaction_date, today, vaccination, doctor))
+                self.connection.commit()
+                pk_ = f'({vaccination}{today}{cf_primary_key}{vaccination_date}{cf_primary_key})'
+                pk_ = self.calculate_sha1(pk)
+                sql = """INSERT INTO vaccination (id_, patient, reporting, vaccination, dose, 
+                site, vaccination_date, doctor)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
+                cursor.execute(sql, (pk_, cf_primary_key, pk, vaccination, dose, place, vaccination_date, sql_result))
+                self.connection.commit()
 
-
-
-            success = {'Server': 'Server',
-                       'message': 'Paziente aggiornato!'}
-            return success
+                # Reazione
+                sql = """INSERT INTO reaction (id_, severity, description, reporting, doctor)
+                VALUES (%s, %s, %s, %s, %s)"""
+                pk__ = f'{severity}{vaccination}{description}{vaccination_date}{cf_primary_key}{today}Reaction'
+                pk__ = self.calculate_sha1(pk__)
+                cursor.execute(sql, (pk__, str(severity), description, cf_primary_key, doctor))
+                self.connection.commit()
+                # Rischio
+                _pk = f'{vaccination}{severity}{description}{vaccination_date}{vaccination}{today}'
+                _pk = self.calculate_sha1(_pk)
+                sql = """INSERT INTO risk (id_, description, risk_level, doctor, patient) 
+                         VALUES (%s, %s, %s, %s, %s)"""
+                cursor.execute(sql, (_pk, description, severity, sql_result, cf_primary_key))
+                self.connection.commit()
+                response = {'Server': 'Server',
+                            'message': 'Paziente aggiornato e segnalazione inviata!'}
         except (Exception, psycopg2.DatabaseError) as e:
+            response = {'Server': 'Server',
+                        'message': str(e)}
             print(e)
+        finally:
+            return response
+
+    def get_reactions(self, doctor: str) -> json:
+        sql = """SELECT * from reporting WHERE doctor='%s'""" % doctor
+        cursor = self.connection.cursor()
+        reaction_dictionary = {}
+        all_patient = []
+        all_reactions = []
+        all_date = []
+        all_vaccination = []
+        try:
+            cursor.execute(sql)
+            results = cursor.fetchall()
+
+            if results is None:
+                return None
+            else:
+                for result in results:
+                    patient = result[1]
+                    reaction = result[2]
+                    reaction_date = result[3]
+                    vaccination = result[5]
+                    all_patient.append(patient)
+                    all_reactions.append(reaction)
+                    all_vaccination.append(vaccination)
+
+            reaction_dictionary = {
+                'pazienti': all_patient,
+                'reazioni': all_reactions,
+                'date': all_date,
+                'vaccinazioni': all_vaccination
+            }
+
+        except (Exception, psycopg2.DatabaseError) as e:
+            reaction_dictionary = {}
+            print(Fore.RED + str(e))
+        finally:
+            return reaction_dictionary
 
     def login(self, credential: json) -> json:
         name, surname = None, None
@@ -273,7 +402,6 @@ class DatabaseOperations:
         fiscal_code = credential['cf']
         # SQL injection
         sql = "SELECT name, surname, role FROM customers WHERE cf='%s' AND passwd='%s'" % (fiscal_code, password)
-
         # NO SQL injection
         # sql = "SELECT name, surname, role FROM customers WHERE cf=%s AND passwd=%s"
         cursor = self.connection.cursor()
@@ -328,3 +456,15 @@ class DatabaseOperations:
     def get_password_hash(password: str) -> str:
         hashed_passwd = hashlib.sha512(password.encode('utf-8')).hexdigest()
         return str(hashed_passwd)
+
+    @staticmethod
+    def calculate_sha1(word: str) -> str:
+        hashed_pk = hashlib.sha1(word.encode('utf-8')).hexdigest()
+        return str(hashed_pk)
+
+    @staticmethod
+    def extract_vaccinations(vaccinations: []) -> str:
+        all_vaccinations = ''
+        for vaccination in vaccinations:
+            all_vaccinations += vaccination['vaccination'] + ' '
+        return all_vaccinations

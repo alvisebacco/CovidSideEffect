@@ -29,4 +29,13 @@ def api_covid_side_effects():
         reaction_data = request.get_json()
         return ModelCovid.post_reaction(reaction_data)
 
+    @api_covid.route('/covid/new_vaccination/', methods=['POST'])
+    def new_vaccination():
+        vaccination_data = request.get_json()
+        return ModelCovid.post_vaccination(vaccination_data)
+
+    @api_covid.route('covid/get_reactions/<doctor>', methods=['GET'])
+    def get_reaction(doctor):
+        return ModelCovid.get_reactions(doctor)
+
     return api_covid

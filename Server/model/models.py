@@ -23,3 +23,11 @@ class ModelCovid:
     @staticmethod
     def post_reaction(reaction: json):
         return DatabaseOperations().post_new_reaction(reaction)
+
+    @staticmethod
+    def post_vaccination(vaccination_data: json):
+        return DatabaseOperations().post_new_vaccination(vaccination_data)
+
+    @staticmethod
+    def get_reactions(doctor):
+        return DatabaseOperations().get_reactions(doctor)

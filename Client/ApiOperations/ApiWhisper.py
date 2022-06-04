@@ -33,7 +33,7 @@ class ApiWhisper:
             print(e)
             return False
 
-    def post_to_server(self, obj: json, api_prefix) -> tuple:
+    def post_to_server(self, obj: json, api_prefix: str) -> tuple:
         try:
             api = self.endpoint + api_prefix
             request = requests.post(api, json=obj,
@@ -69,3 +69,16 @@ class ApiWhisper:
         except Exception as e:
             print(e)
             return name, surname, role, login_access
+
+    def get_reactions_from_doctor(self, doc: str):
+        request = 'Error'
+        try:
+            api_prefix = f'/api/covid/get_reactions/{doc}'
+            api = self.endpoint + api_prefix
+            request = requests.get(api)
+            request = json.loads(request.text)
+        except Exception as e:
+            print(e)
+        finally:
+            return request
+

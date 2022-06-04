@@ -1,6 +1,6 @@
 import json
 
-from DrawMainInterface import DrawMainObj
+from DrawMainInterface import DrawMainObj, DrawMyReaction
 from DefensiveCode import Defender
 import tkinter as tk
 from tkinter import simpledialog
@@ -10,7 +10,6 @@ from ApiOperations.ApiWhisper import ApiWhisper
 
 class InstantiateGraphicalObject(DrawMainObj):
     def __init__(self, session):
-
         self.session = session
         self.dark_red: str = '#3c002f'
         self.solarized_red: str = '#FFCCCC'
@@ -18,7 +17,6 @@ class InstantiateGraphicalObject(DrawMainObj):
         super(InstantiateGraphicalObject, self).__init__(window_bg=self.dark_red, title='CSET Edizione Medico',
                                                          geometry='960x768')
         self.title_ = ''
-        self.cf = None
         self.default_text = None
         self.slider = tk.IntVar(self.window)
         self.antiflu = tk.StringVar(self.window)
@@ -100,10 +98,10 @@ class InstantiateGraphicalObject(DrawMainObj):
         super(InstantiateGraphicalObject, self).separator('zero', self.solarized_red, 2, 950, 10, 120)
         super(InstantiateGraphicalObject, self).separator('first', self.solarized_red, 2, 950, 10, 300)
         super(InstantiateGraphicalObject, self).label_patient_informations('risk_level',
-                                                                           'Gravità',
+                                                                           'Gravità della reazione',
                                                                            self.solarized_red, self.dark_red, 10, 590)
         super(InstantiateGraphicalObject, self).label_patient_informations('risk_description',
-                                                                           'Descrizione',
+                                                                           'Descrizione della reazione avversa',
                                                                            self.solarized_red, self.dark_red, 400, 590)
         self.draw_text_box()
 
@@ -157,6 +155,20 @@ class InstantiateGraphicalObject(DrawMainObj):
                                          command=self.post_reaction)
         button_send_reaction.place(x=700, y=700)
 
+        button_send_reaction = tk.Button(self.window,
+                                         text='Controlla le reazioni inviate',
+                                         bg='orange',
+                                         font=('Courier', 16, 'bold'),
+                                         command=self.check_my_reaction)
+        button_send_reaction.place(x=200, y=700)
+
+        button_send_reaction = tk.Button(self.window,
+                                         text='Aggiungi',
+                                         bg='blue',
+                                         font=('Courier', 16, 'bold'),
+                                         command=self.post_only_vaccination)
+        button_send_reaction.place(x=770, y=525)
+
         button_post_data_patient = tk.Button(self.window,
                                              text='Registra paziente',
                                              bg='orange',
@@ -177,6 +189,66 @@ class InstantiateGraphicalObject(DrawMainObj):
             api_prefix = f'/api/covid/new_patient'
             where_from, message = ApiWhisper().post_to_server(obj_to_send, api_prefix)
             messagebox.showinfo(where_from, message)
+
+    def post_only_vaccination(self):
+        vaccination = None
+        vaccination_place = None
+        vaccination_date = None
+        dose = None
+        cf_patient = self.tb_cf_existing_patient.get()
+        vaccinations = self.get_vaccination()
+        try:
+            for vaccination in vaccinations:
+                if vaccination != 'Non':
+                    vaccination_date_is_not_good = True
+                    vaccination_date = None
+                    while vaccination_date_is_not_good:
+                        vaccination_date = simpledialog.askstring('Data', f'Data della vaccinazione per {vaccination} '
+                                                                          f'espressa in gg/mm/aaaa')
+                        iso_vaccination_date, its_ok = Defender.check_and_get_datetime_reaction_date(vaccination_date)
+                        if its_ok:
+                            vaccination_date_is_not_good = False
+                        else:
+                            vaccination_date_is_not_good = True
+
+                    dose_is_not_good = True
+                    dose = None
+                    while dose_is_not_good:
+                        dose = simpledialog.askstring('Dose', f'Quali dosi di {vaccination} sono state effettuate?')
+                        if len(dose) > 0:
+                            dose_is_not_good = False
+                        else:
+                            dose_is_not_good = True
+                    vaccination_place = None
+                    while vaccination_place is None:
+                        vaccination_place = simpledialog.askstring('Centro vaccinale',
+                                                                   f'Dove è stata eseguita la vaccinazione '
+                                                                   f'per {vaccination}?')
+                    if not dose_is_not_good and not vaccination_date_is_not_good and (vaccination_place is not None):
+                        vaccination_dict = {'vaccination': vaccination,
+                                            'date': vaccination_date,
+                                            'place': vaccination_place,
+                                            'dose': dose,
+                                            'patient': cf_patient,
+                                            'doctor': self.session
+                                            }
+                        cf_patient = self.tb_cf_existing_patient.get()
+                        if not Defender.fiscal_code(cf_patient):
+                            messagebox.showerror('Client', 'Formato del codice fiscale non corretto')
+                            self.tb_cf_existing_patient.config(bg='red')
+                            cf = False
+                        else:
+                            self.tb_cf_existing_patient.config(bg='green')
+                            cf = True
+                        if cf and vaccination is not None:
+                            api_prefix = f'/api/covid/new_vaccination/'
+                            server, message = ApiWhisper().post_to_server(vaccination_dict, api_prefix)
+                            messagebox.showinfo(server, message)
+                        else:
+                            messagebox.showerror('Client', 'Specificare CF Paziente e le vaccinazione da aggiungere')
+        except Exception as e:
+            messagebox.showerror('Client', 'Nessun vaccino specificato!')
+            return
 
     def get_all_value_from_patient(self) -> tuple:
         fiscal_code = False
@@ -226,6 +298,11 @@ class InstantiateGraphicalObject(DrawMainObj):
 
     def post_reaction(self):
         """Funzione per inserimento dati relativi al covid"""
+        dose_is_not_good = True
+        vaccination_date_is_not_good = True
+        vaccination_date = None
+        vaccination_place = None
+        dose = None
 
         # fattori di rischio
         is_smoker = self.smoke.get()
@@ -234,19 +311,7 @@ class InstantiateGraphicalObject(DrawMainObj):
         is_hypertension = self.iper.get()
 
         # vaccinazioni eseguite
-        vaccinations = []
-        has_astrazeneca = self.astrazeneca.get()
-        vaccinations.append(has_astrazeneca)
-        has_pfizer = self.pfzier.get()
-        vaccinations.append(has_pfizer)
-        has_antiflu = self.antiflu.get()
-        vaccinations.append(has_antiflu)
-        has_moderna = self.moderna.get()
-        vaccinations.append(has_moderna)
-        has_sputnik = self.sputnik.get()
-        vaccinations.append(has_sputnik)
-        has_sinovak = self.sinovak.get()
-        vaccinations.append(has_sinovak)
+        vaccinations = self.get_vaccination()
 
         # Data di nascita
         reaction_date = self.tb_reaction_date.get()
@@ -276,38 +341,32 @@ class InstantiateGraphicalObject(DrawMainObj):
         severity = self.slider.get()
 
         if cf and date:
-            vaccination_dates = []
-            vaccination_doses = []
-            vaccination_places = []
-            object_to_send = []
+            object_to_send = {'smoker': is_smoker,
+                              'fatty': is_fatty,
+                              'cardioonco': is_cardioonco,
+                              'hypert': is_hypertension,
+                              'reaction_date': str(reaction_date),
+                              'cf_primary_key': cf_patient,
+                              'vaccination_array_of_dict': []}
+
             for vaccination in vaccinations:
                 if vaccination != 'Non':
                     vaccination_date_is_not_good = True
+                    vaccination_date = None
                     while vaccination_date_is_not_good:
                         vaccination_date = simpledialog.askstring('Data', f'Data della vaccinazione per {vaccination} '
                                                                           f'espressa in gg/mm/aaaa')
                         iso_vaccination_date, its_ok = Defender.check_and_get_datetime_reaction_date(vaccination_date)
                         if its_ok:
-                            vaccination_dates.append({
-                                'Vaccinazione': vaccination,
-                                'Data della vaccinazione': vaccination_date
-                            })
-
                             vaccination_date_is_not_good = False
                         else:
                             vaccination_date_is_not_good = True
 
                     dose_is_not_good = True
+                    dose = None
                     while dose_is_not_good:
-                        allowed_doses = ['I', 'II', 'III', 'IV', 'unica']
-                        dose = simpledialog.askstring('Dose', f'Per quale dose di {vaccination} '
-                                                              f'si segnala la reazione avversa?'
-                                                              f'Indicare solo I, II, III, IV o unica')
-                        if dose in allowed_doses:
-                            vaccination_doses.append({
-                                'Vaccinazione': vaccination,
-                                'Dose': dose
-                            })
+                        dose = simpledialog.askstring('Dose', f'Quale dose di {vaccination} ha ricevuto?')
+                        if len(dose) > 0:
                             dose_is_not_good = False
                         else:
                             dose_is_not_good = True
@@ -316,24 +375,40 @@ class InstantiateGraphicalObject(DrawMainObj):
                         vaccination_place = simpledialog.askstring('Centro vaccinale',
                                                                    f'Dove è stata eseguita la vaccinazione '
                                                                    f'per {vaccination}?')
-                    vaccination_places.append({
-                        'Vaccinazione': vaccination,
-                        'Vaccinato presso': vaccination_place
-                    })
-
-            object_to_send = {'smoker': is_smoker,
-                              'fatty': is_fatty,
-                              'cardioonco': is_cardioonco,
-                              'hypert': is_hypertension,
-                              'reaction_date': str(reaction_date),
-                              'cf_primary_key': cf_patient,
-                              'vaccination_dates': vaccination_dates,
-                              'vaccination_doses': vaccination_doses,
-                              'vaccination_places': vaccination_places
-                              }
-            api_prefix = f'/api/covid/new_reaction/'
-            server, message = ApiWhisper().post_to_server(object_to_send, api_prefix)
-            messagebox.showinfo(server, message)
+                    if not dose_is_not_good and not vaccination_date_is_not_good and (vaccination_place is not None):
+                        vaccination_dict = {'vaccination': vaccination,
+                                            'date': vaccination_date,
+                                            'place': vaccination_place,
+                                            'dose': dose,
+                                            'description': description,
+                                            'severity': severity
+                                            }
+                        object_to_send['vaccination_array_of_dict'].append(vaccination_dict)
+                        api_prefix = f'/api/covid/new_reaction/'
+                        server, message = ApiWhisper().post_to_server(object_to_send, api_prefix)
+                        messagebox.showinfo(server, message)
 
     def inset_into_cf(self, e):
         self.tb_cf_existing_patient.insert(0, e)
+
+    def get_vaccination(self) -> []:
+        # vaccinazioni eseguite
+        vaccinations = []
+        has_astrazeneca = self.astrazeneca.get()
+        vaccinations.append(has_astrazeneca)
+        has_pfizer = self.pfzier.get()
+        vaccinations.append(has_pfizer)
+        has_antiflu = self.antiflu.get()
+        vaccinations.append(has_antiflu)
+        has_moderna = self.moderna.get()
+        vaccinations.append(has_moderna)
+        has_sputnik = self.sputnik.get()
+        vaccinations.append(has_sputnik)
+        has_sinovak = self.sinovak.get()
+        vaccinations.append(has_sinovak)
+        return vaccinations
+
+    def check_my_reaction(self):
+        doctor = self.session
+        DrawMyReaction(doctor).virtual_title(doctor, 'Medico')
+
