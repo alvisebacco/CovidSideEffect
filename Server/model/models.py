@@ -31,3 +31,11 @@ class ModelCovid:
     @staticmethod
     def get_reactions(doctor):
         return DatabaseOperations().get_reactions(doctor)
+
+    @staticmethod
+    def get_all(pharma_cf):
+        return DatabaseOperations().get_all(pharma_cf)
+
+    @staticmethod
+    def get_all_(condition):
+        return DatabaseOperations().get_all_(condition)
