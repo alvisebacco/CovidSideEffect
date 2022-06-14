@@ -70,10 +70,9 @@ class ApiWhisper:
             print(e)
             return name, surname, role, login_access
 
-    def get_reactions_from_doctor(self, doc: str):
+    def get_reactions_from_doctor(self, api_prefix) -> json:
         request = 'Error'
         try:
-            api_prefix = f'/api/covid/get_reactions/{doc}'
             api = self.endpoint + api_prefix
             request = requests.get(api)
             request = json.loads(request.text)
@@ -81,4 +80,5 @@ class ApiWhisper:
             print(e)
         finally:
             return request
+
 

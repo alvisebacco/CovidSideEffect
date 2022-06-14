@@ -186,7 +186,7 @@ class DrawObj:
             if role == 'Medico':
                 InstantiateGraphicalObject(session=fiscal_code).virtual_title(name, surname)
             elif role == 'Farmacologo':
-                DrawPharmaMan().draw_title(name, surname)
+                DrawPharmaMan(session=fiscal_code).virtual_title(name, surname)
         elif not login_access and name and surname and role is None:
             messagebox.showerror('Server', 'Credenziali invalide :/')
         else:
