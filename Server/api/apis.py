@@ -38,4 +38,12 @@ def api_covid_side_effects():
     def get_reaction(doctor):
         return ModelCovid.get_reactions(doctor)
 
+    @api_covid.route('covid/get_all/<pharma_cf>', methods=['GET'])
+    def get_all(pharma_cf):
+        return ModelCovid.get_all(pharma_cf)
+
+    @api_covid.route('covid/all/<condition>', methods=['GET'])
+    def get_all_(condition):
+        return ModelCovid.get_all_(condition)
+
     return api_covid

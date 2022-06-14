@@ -4,6 +4,7 @@ from configparser import ConfigParser
 from colorama import Fore
 import hashlib
 from datetime import datetime
+from flask import jsonify
 
 
 class DefensiveCode:
@@ -96,9 +97,9 @@ class DatabaseOperations:
               "%s date NOT NULL, " \
               "%s varchar(50) NOT NULL, " \
               "%s varchar(50) NOT NULL, foreign key(doctor) REFERENCES customers(cf))" % (
-                table_reporting, column_id, column_patient, column_adverse_reaction,
-                column_date_of_reaction, column_date_of_reporting,
-                column_vaccination_carried_out, column_doctor)
+                  table_reporting, column_id, column_patient, column_adverse_reaction,
+                  column_date_of_reaction, column_date_of_reporting,
+                  column_vaccination_carried_out, column_doctor)
         await self.create_table(sql)
 
     async def check_and_create_table_risk(self):
@@ -345,7 +346,7 @@ class DatabaseOperations:
                 # Rischio
                 _pk = f'{vaccination}{severity}{description}{vaccination_date}{vaccination}{today}'
                 _pk = self.calculate_sha1(_pk)
-                sql = """INSERT INTO risk (id_, description, risk_level, doctor, patient) 
+                sql = """INSERT INTO risk (id_, description, risk_level, doctor, patient)
                          VALUES (%s, %s, %s, %s, %s)"""
                 cursor.execute(sql, (_pk, description, severity, sql_result, cf_primary_key))
                 self.connection.commit()
@@ -357,6 +358,83 @@ class DatabaseOperations:
             print(e)
         finally:
             return response
+
+    def get_all(self, ph):
+        sql = """SELECT name from customers WHERE cf='%s'""" % ph
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(sql)
+            name_of_pharma = cursor.fetchone()
+        except (Exception, psycopg2.DatabaseError) as e:
+            return 'Error'
+        requester = name_of_pharma
+        sql = """SELECT COUNT(*) id_ FROM reporting"""
+        cursor.execute(sql)
+        number_of_reporting = cursor.fetchone()
+        return_me = {'Number': number_of_reporting}
+        return return_me
+
+    def get_all_(self, condition):
+        all_sweet_data = []
+        cursor = self.connection.cursor()
+        tables = ['patient', 'reaction', 'reporting', 'risk', 'vaccination']
+        if condition == 'all':
+            i = 0
+            for table in tables:
+                sql = """SELECT * FROM %s""" % table
+                cursor.execute(sql)
+                data = cursor.fetchall()
+                all_sweet_data.append(data)
+            my_pretty_database = {
+                'patient': all_sweet_data[0],
+                'reaction': all_sweet_data[1],
+                'reporting': all_sweet_data[2],
+                'risk': all_sweet_data[3],
+                'vaccination': all_sweet_data[4]
+            }
+            return my_pretty_database
+
+        elif condition == 'patient':
+            sql = """select doctor, id_, previous_vaccination, is_smoker, is_fatty, is_hyper, is_cardioonco, 
+            previous_vaccination from patient ORDER BY doctor"""
+            data = self.query_to_database(sql)
+            return jsonify(data)
+
+        elif condition == 'patient_order_by_vaccination':
+            sql = """select previous_vaccination, doctor, is_smoker, is_fatty, is_hyper, is_cardioonco from patient ORDER BY doctor"""
+            data = self.query_to_database(sql)
+            return jsonify(data)
+
+        elif condition == 'criticality':
+            sql = """select patient, doctor, adv_reaction, reaction_date, vaccination_carried_out from reporting"""
+            data = self.query_to_database(sql)
+            return jsonify(data)
+
+        elif condition == 'vacc':
+            sql = """select vaccination_carried_out, patient, doctor, adv_reaction, reaction_date from reporting"""
+            data = self.query_to_database(sql)
+            return jsonify(data)
+
+        elif condition == 'risk':
+            sql = """select risk_level, patient from risk order by risk_level"""
+            data = self.query_to_database(sql)
+            return jsonify(data)
+
+        elif condition == 'vaccination_info':
+            sql = """select patient, vaccination, dose, site, doctor, vaccination_date from vaccination ORDER by patient"""
+            data = self.query_to_database(sql)
+            return jsonify(data)
+
+        elif condition == 'vaccination_info_':
+            sql = """select site, vaccination, vaccination_date from vaccination ORDER by site"""
+            data = self.query_to_database(sql)
+            return jsonify(data)
+
+    def query_to_database(self, sql):
+        cursor = self.connection.cursor()
+        cursor.execute(sql)
+        data = cursor.fetchall()
+        return data
 
     def get_reactions(self, doctor: str) -> json:
         sql = """SELECT * from reporting WHERE doctor='%s'""" % doctor
@@ -376,11 +454,12 @@ class DatabaseOperations:
                 for result in results:
                     patient = result[1]
                     reaction = result[2]
-                    reaction_date = result[3]
+                    reaction_date = str(result[3])
                     vaccination = result[5]
                     all_patient.append(patient)
                     all_reactions.append(reaction)
                     all_vaccination.append(vaccination)
+                    all_date.append(reaction_date)
 
             reaction_dictionary = {
                 'pazienti': all_patient,
