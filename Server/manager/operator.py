@@ -430,6 +430,15 @@ class DatabaseOperations:
             data = self.query_to_database(sql)
             return jsonify(data)
 
+        elif condition == 'order_by_vaccination_risks':
+            vaccination_array = []
+            sql = """select count(id_), vaccination_carried_out from reporting group by vaccination_carried_out"""
+            data = self.query_to_database(sql)
+            for data_ in data:
+                vaccination_array.append(data_)
+            all_my_vaccinations = {'Vaccinazioni': vaccination_array}
+            return all_my_vaccinations
+
     def query_to_database(self, sql):
         cursor = self.connection.cursor()
         cursor.execute(sql)

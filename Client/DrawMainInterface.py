@@ -1,7 +1,9 @@
+import json
 import tkinter as tk
 from tkinter import messagebox, scrolledtext
 from ApiOperations.ApiWhisper import ApiWhisper
 import webbrowser
+import requests
 
 
 class DrawMainObj:
@@ -219,6 +221,13 @@ class DrawPharmaMan(DrawMainObj):
                                                 command=self.get_vaccination_info_)
                 button_vaccination_.place(x=200, y=450)
 
+                button_vaccination_ = tk.Button(self.window,
+                                                text='Segnala...',
+                                                bg='red',
+                                                font=('Courier', 16, 'bold'),
+                                                command=self.post_segnalation)
+                button_vaccination_.place(x=750, y=450)
+
     @staticmethod
     def get_all_all():
         api_prefix = f'/api/covid/all/all'
@@ -266,6 +275,15 @@ class DrawPharmaMan(DrawMainObj):
         api_prefix = f'/api/covid/all/vaccination_info_'
         url = 'http://127.0.0.1:5006' + api_prefix
         webbrowser.open(url)
+
+    @staticmethod
+    def post_segnalation():
+        api_prefix = f'/api/covid/all/order_by_vaccination_risks'
+        url = 'http://127.0.0.1:5006' + api_prefix
+        vaccinations = requests.get(url)
+        vaccinations = json.loads(vaccinations.text)
+        for content in vaccinations['Vaccinazioni']:
+            messagebox.askyesno('Segnalare?', content)
 
     @staticmethod
     def get_str_instead_of_array_with_space(_list_: list) -> str:
